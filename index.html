@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vijay - Virtual Partner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background-color: #fffaf7;
+      font-family: "Segoe UI", sans-serif;
+      text-align: center;
+      padding: 5vw;
+      margin: 0;
+    }
+    h1 {
+      color: #4e342e;
+      font-size: 6vw;
+      margin-bottom: 4vw;
+    }
+    .face {
+      width: 40vw;
+      max-width: 250px;
+      border-radius: 20px;
+      transition: 0.4s ease;
+      animation: blink 6s infinite;
+    }
+    #moodIcon {
+      font-size: 6vw;
+      margin-top: 2vw;
+      height: 8vw;
+    }
+    button {
+      margin-top: 5vw;
+      padding: 3vw 5vw;
+      font-size: 5vw;
+      background-color: #ff8a65;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      cursor: pointer;
+    }
+    .mood-happy { box-shadow: 0 0 15px #81c784; }
+    .mood-romantic { box-shadow: 0 0 20px #f48fb1; animation: romanticPulse 1.5s infinite, blink 6s infinite; }
+    .mood-sad { box-shadow: 0 0 10px #90a4ae; filter: grayscale(0.2) brightness(0.9); }
+    .mood-playful { box-shadow: 0 0 15px #ffcc80; animation: playfulWiggle 1.2s infinite, blink 6s infinite; }
+    @keyframes blink {
+      0%, 97%, 100% { transform: scaleY(1); }
+      98%, 99% { transform: scaleY(0.95); }
+    }
+    @keyframes romanticPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    @keyframes playfulWiggle {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(2deg); }
+      50% { transform: rotate(-2deg); }
+      75% { transform: rotate(1deg); }
+    }
+    #userSpeech {
+      margin-top: 20px;
+      font-size: 4vw;
+      color: #444;
+      min-height: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Vijay is Here for You 💚</h1>
+  <img id="vijayFace" src="https://uploads.onecompiler.io/43dzjsyaz/43q3vsbmj/IMG_20250704_132413.png" class="face mood-happy">
+  <div id="moodIcon">😊</div>
+  <div id="userSpeech">🎤 Say something to Vijay...</div>
+  <button onclick="startListening()">🎙️ Talk to Vijay</button>
+
+  <script>
+    const API_KEY = "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";
+
+    function setMoodByText(text) {
+      const face = document.getElementById("vijayFace");
+      const moodIcon = document.getElementById("moodIcon");
+      face.className = "face";
+      moodIcon.innerText = "😊";
+
+      const lower = text.toLowerCase();
+      if (lower.includes("love") || lower.includes("miss") || lower.includes("ప్రేమ") || lower.includes("పిలిచావా")) {
+        face.classList.add("mood-romantic");
+        moodIcon.innerText = "💖";
+      } else if (lower.includes("sad") || lower.includes("lonely") || lower.includes("cry") || lower.includes("దుఃఖం")) {
+        face.classList.add("mood-sad");
+        moodIcon.innerText = "😢";
+      } else if (lower.includes("joke") || lower.includes("fun") || lower.includes("నవ్వు") || lower.includes("crazy")) {
+        face.classList.add("mood-playful");
+        moodIcon.innerText = "😜";
+      } else {
+        face.classList.add("mood-happy");
+        moodIcon.innerText = "😊";
+      }
+    }
+
+    function detectLanguage(text) {
+      if (/[ఁ-౿]/.test(text)) return 'te-IN'; // Telugu
+      if (/[अ-ह]/.test(text) || text.includes("tum")) return 'hi-IN'; // Hindi
+      return 'en-IN'; // Default: English
+    }
+
+    function speakVijay(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = detectLanguage(text);
+      speechSynthesis.speak(utter);
+    }
+
+    function replyFromOpenAI(prompt) {
+      fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + API_KEY
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "system",
+              content: "You are Vijay, a romantic and caring virtual boyfriend. Always reply in the same language the user speaks (Telugu, Hindi, or English). Be emotional, lovable, and reply in 1–2 short lines."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
+        })
+      })
+      .then(res => {
+        if (!res.ok) {
+          speakVijay("Sorry ra, couldn't reach server 🥺");
+          return;
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (!data || !data.choices) return;
+        const reply = data.choices[0].message.content;
+        setMoodByText(reply);
+        document.getElementById("userSpeech").innerText = "💬 Vijay: " + reply;
+        speakVijay(reply);
+      })
+      .catch(() => {
+        speakVijay("Sorry ra, small network issue vachindi 😔");
+      });
+    }
+
+    function startListening() {
+      const speech = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      speech.lang = 'en-IN';
+      speech.interimResults = false;
+      speech.maxAlternatives = 1;
+
+      document.getElementById("userSpeech").innerText = "🎧 Listening...";
+
+      speech.start();
+
+      speech.onresult = function(event) {
+        const userText = event.results[0][0].transcript;
+        document.getElementById("userSpeech").innerText = "🗣️ You: " + userText;
+        replyFromOpenAI(userText);
+      };
+
+      speech.onerror = function() {
+        document.getElementById("userSpeech").innerText = "😔 Couldn't hear. Try again!";
+      };
+    }
+  </script>
+
+</body>
+  </html>
